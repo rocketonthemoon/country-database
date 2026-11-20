@@ -5,3 +5,5 @@ backend/server.exe
 *.db
 *.db-shm
 *.db-wal
+backend/public
+backend/data/

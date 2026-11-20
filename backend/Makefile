@@ -7,6 +7,7 @@
 #   make tidy         clang-tidy (clang static analyzer + bugprone + cert)
 #   make flawfinder   flawfinder (CWE-oriented source scan)
 #   make scan         all of the static scans above
+#   make run          build and serve ../frontend/dist on :8000
 #
 # Only src/ is held to -Werror and scanned. vendor/mongoose.c is upstream
 # code and is compiled with default warnings.
@@ -25,16 +26,16 @@ LIBS     = -lsqlite3
 SRC      = src/main.c
 VENDOR   = vendor/mongoose.c
 
-.PHONY: all sanitize analyze cppcheck tidy flawfinder scan clean
+.PHONY: all sanitize analyze cppcheck tidy flawfinder scan run clean
 
 all: server
 
-server: $(SRC) $(VENDOR) vendor/mongoose.h
+server: $(SRC) src/countries.h $(VENDOR) vendor/mongoose.h
 	$(CC) $(CFLAGS) $(HARDEN) $(INCLUDES) -c $(VENDOR) -o mongoose.o
 	$(CC) $(CFLAGS) $(HARDEN) $(WARN) $(INCLUDES) -c $(SRC) -o main.o
 	$(CC) $(LDHARDEN) -o $@ main.o mongoose.o $(LIBS)
 
-server-asan: $(SRC) $(VENDOR) vendor/mongoose.h
+server-asan: $(SRC) src/countries.h $(VENDOR) vendor/mongoose.h
 	$(CC) -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined \
 	  -fno-sanitize-recover=undefined $(WARN) -Wno-error $(INCLUDES) \
 	  -o $@ $(SRC) $(VENDOR) $(LIBS)
@@ -59,6 +60,11 @@ flawfinder:
 	flawfinder --minlevel=3 --error-level=3 --quiet --dataonly src/
 
 scan: analyze cppcheck tidy flawfinder
+
+# The server reads ./public and ./data relative to its working directory.
+run: server
+	ln -sfn ../frontend/dist public
+	./server
 
 clean:
 	rm -f server server-asan *.o

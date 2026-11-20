@@ -117,11 +117,10 @@ jobs:
       - name: Run server and smoke test
         working-directory: backend
         env:
-          DB_PATH: ${{ runner.temp }}/game.db
-          SEED_PATH: data/seed.sql
-          PUBLIC_DIR: ${{ github.workspace }}/frontend/dist
           ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
         run: |
+          # Server paths are fixed: ./public (static export), ./data/game.db
+          ln -sfn ../frontend/dist public
           ./server-asan > "$RUNNER_TEMP/server.log" 2>&1 &
           pid=$!
           sh ../tests/smoke.sh

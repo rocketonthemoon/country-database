@@ -5,7 +5,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - game-data:/data   # SQLite database (leaderboard) survives rebuilds
+      - game-data:/app/data   # SQLite database (leaderboard) survives rebuilds
     restart: unless-stopped
 
 volumes:

@@ -24,19 +24,17 @@ RUN apk upgrade --no-cache \
  && apk add --no-cache sqlite-libs \
  && addgroup -S -g 10001 app \
  && adduser -S -u 10001 -G app -H -s /sbin/nologin app \
- && mkdir -p /data && chown 10001:10001 /data
+ && mkdir -p /app/data && chown 10001:10001 /app/data
+# The server uses fixed paths relative to its working directory:
+#   ./public (static export)   ./data/game.db (SQLite)
 WORKDIR /app
 COPY --from=backend /src/server ./server
-COPY backend/data/seed.sql ./data/seed.sql
 COPY --from=frontend /src/dist ./public
 
-ENV PORT=8000 \
-    DB_PATH=/data/game.db \
-    SEED_PATH=/app/data/seed.sql \
-    PUBLIC_DIR=/app/public
+ENV PORT=8000
 
 USER 10001:10001
-VOLUME ["/data"]
+VOLUME ["/app/data"]
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
   CMD ["wget", "-qO", "/dev/null", "http://127.0.0.1:8000/api/health"]

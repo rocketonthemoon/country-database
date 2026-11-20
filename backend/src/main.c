@@ -1,22 +1,35 @@
 // Country guessing game - HTTP API server.
 // Mongoose (embedded web server) + SQLite.
 //
+// Paths are fixed and relative to the working directory, so no file path
+// ever comes from the environment or a request:
+//   ./public/        Svelte static export (vite build output); API only
+//                    if it has no index.html
+//   ./data/game.db   SQLite database (./data is created if missing)
+// Country data is compiled in (countries.h) and inserted with prepared
+// statements; no SQL text is read from disk.
+//
 // Environment:
-//   PORT        listen port                (default 8000)
-//   DB_PATH     SQLite database file       (default ./game.db)
-//   SEED_PATH   SQL seed for countries     (default ./data/seed.sql)
-//   PUBLIC_DIR  Svelte static export (vite build output) to serve
-//               (default ./public; API only if it has no index.html)
+//   PORT        listen port, 1-65535       (default 8000)
 
+#include <errno.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include <sqlite3.h>
 
+#include "countries.h"
 #include "mongoose.h"
+
+#define PUBLIC_DIR "public"
+#define INDEX_PATH PUBLIC_DIR "/index.html"
+#define DATA_DIR "data"
+#define DB_PATH DATA_DIR "/game.db"
+#define DEFAULT_PORT 8000
 
 #define FLAG_ROUNDS 10
 #define CLUE_ROUNDS 5
@@ -29,8 +42,7 @@ static const char *JSON_HDR =
     "Content-Type: application/json\r\nCache-Control: no-store\r\n";
 
 static sqlite3 *s_db;
-static const char *s_public_dir;
-static char s_index_path[512];
+static bool s_serve_static;
 static volatile sig_atomic_t s_stop;
 
 static const char *SCHEMA =
@@ -53,35 +65,9 @@ static const char *SCHEMA =
 
 // ---------------------------------------------------------------- helpers
 
-// Env vars are operator-supplied container config (paths, port), not
-// request input; values are only used as file paths / listen port.
-static const char *env_or(const char *key, const char *dflt) {
-  const char *v = getenv(key);  // flawfinder: ignore
-  return v != NULL && *v != '\0' ? v : dflt;
-}
-
 static void on_signal(int sig) {
   (void) sig;
   s_stop = 1;
-}
-
-static char *read_file(const char *path) {
-  FILE *fp = fopen(path, "rb");
-  char *buf = NULL;
-  long n = -1;
-  if (fp == NULL) return NULL;
-  if (fseek(fp, 0, SEEK_END) == 0) n = ftell(fp);
-  if (n >= 0 && fseek(fp, 0, SEEK_SET) == 0) buf = malloc((size_t) n + 1);
-  if (buf != NULL) {
-    if (fread(buf, 1, (size_t) n, fp) != (size_t) n) {
-      free(buf);
-      buf = NULL;
-    } else {
-      buf[n] = '\0';
-    }
-  }
-  fclose(fp);
-  return buf;
 }
 
 // Parses a decimal int in [min, max]; returns dflt on any error.
@@ -146,15 +132,60 @@ static char *clean_player_name(char *s) {
 
 // ---------------------------------------------------------------- database
 
-static bool db_init(const char *db_path, const char *seed_path) {
+// Inserts the compiled-in countries in one transaction, using a prepared
+// statement with bound parameters.
+static bool seed_countries(void) {
+  const size_t n = sizeof(SEED_COUNTRIES) / sizeof(SEED_COUNTRIES[0]);
+  sqlite3_stmt *st = NULL;
+  bool ok = true;
+
+  if (sqlite3_exec(s_db, "BEGIN", NULL, NULL, NULL) != SQLITE_OK) return false;
+  if (sqlite3_prepare_v2(s_db,
+                         "INSERT INTO countries (code, name, capital, region,"
+                         " subregion, area, languages, currencies, landlocked,"
+                         " borders) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                         -1, &st, NULL) != SQLITE_OK) {
+    ok = false;
+  }
+  for (size_t i = 0; ok && i < n; i++) {
+    const struct seed_country *r = &SEED_COUNTRIES[i];
+    sqlite3_bind_text(st, 1, r->code, -1, SQLITE_STATIC);
+    sqlite3_bind_text(st, 2, r->name, -1, SQLITE_STATIC);
+    sqlite3_bind_text(st, 3, r->capital, -1, SQLITE_STATIC);
+    sqlite3_bind_text(st, 4, r->region, -1, SQLITE_STATIC);
+    sqlite3_bind_text(st, 5, r->subregion, -1, SQLITE_STATIC);
+    sqlite3_bind_double(st, 6, r->area);
+    sqlite3_bind_text(st, 7, r->languages, -1, SQLITE_STATIC);
+    sqlite3_bind_text(st, 8, r->currencies, -1, SQLITE_STATIC);
+    sqlite3_bind_int(st, 9, r->landlocked);
+    sqlite3_bind_int(st, 10, r->borders);
+    ok = sqlite3_step(st) == SQLITE_DONE;
+    sqlite3_reset(st);
+  }
+  sqlite3_finalize(st);
+  if (!ok) {
+    MG_ERROR(("seed: %s", sqlite3_errmsg(s_db)));
+    sqlite3_exec(s_db, "ROLLBACK", NULL, NULL, NULL);
+    return false;
+  }
+  if (sqlite3_exec(s_db, "COMMIT", NULL, NULL, NULL) != SQLITE_OK) return false;
+  MG_INFO(("seeded %d countries", (int) n));
+  return true;
+}
+
+static bool db_init(void) {
   sqlite3_stmt *st;
   int count = 0;
   char *err = NULL;
 
-  if (sqlite3_open_v2(db_path, &s_db,
+  if (mkdir(DATA_DIR, 0750) != 0 && errno != EEXIST) {
+    MG_ERROR(("cannot create %s/: %s", DATA_DIR, strerror(errno)));
+    return false;
+  }
+  if (sqlite3_open_v2(DB_PATH, &s_db,
                       SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
                       NULL) != SQLITE_OK) {
-    MG_ERROR(("open %s: %s", db_path, sqlite3_errmsg(s_db)));
+    MG_ERROR(("open %s: %s", DB_PATH, sqlite3_errmsg(s_db)));
     return false;
   }
   sqlite3_busy_timeout(s_db, 2000);
@@ -171,22 +202,7 @@ static bool db_init(const char *db_path, const char *seed_path) {
   }
   sqlite3_finalize(st);
 
-  if (count == 0) {
-    char *sql = read_file(seed_path);
-    if (sql == NULL) {
-      MG_ERROR(("cannot read seed file %s", seed_path));
-      return false;
-    }
-    if (sqlite3_exec(s_db, sql, NULL, NULL, &err) != SQLITE_OK) {
-      MG_ERROR(("seed: %s", err));
-      sqlite3_free(err);
-      free(sql);
-      return false;
-    }
-    free(sql);
-    MG_INFO(("seeded countries from %s", seed_path));
-  }
-  return true;
+  return count > 0 || seed_countries();
 }
 
 // ---------------------------------------------------------------- handlers
@@ -502,17 +518,17 @@ static bool is_route(struct mg_http_message *hm, const char *path) {
   return mg_match(hm->uri, mg_str(path), NULL);
 }
 
-// Serves the Svelte static export (vite build output) from PUBLIC_DIR.
+// Serves the Svelte static export (vite build output) from ./public.
 //  - /assets/* are content-hashed by Vite: cached for a year, real 404s.
 //  - anything else that doesn't exist falls back to index.html (SPA).
 //  - precompressed *.gz siblings are sent when the client accepts gzip.
 static void serve_static(struct mg_connection *c, struct mg_http_message *hm) {
-  struct mg_http_serve_opts opts = {.root_dir = s_public_dir};
+  struct mg_http_serve_opts opts = {.root_dir = PUBLIC_DIR};
   if (mg_match(hm->uri, mg_str("/assets/#"), NULL)) {
     opts.extra_headers = "Cache-Control: public, max-age=31536000, immutable\r\n";
   } else {
     opts.extra_headers = "Cache-Control: no-cache\r\n";
-    opts.page404 = s_index_path;
+    opts.page404 = INDEX_PATH;
   }
   mg_http_serve_dir(c, hm, &opts);
 }
@@ -538,7 +554,7 @@ static void ev_handler(struct mg_connection *c, int ev, void *ev_data) {
     handle_get_scores(c, hm);
   } else if (is_route(hm, "/api/scores") && is_method(hm, "POST")) {
     handle_post_score(c, hm);
-  } else if (s_public_dir != NULL && !is_route(hm, "/api/#")) {
+  } else if (s_serve_static && !is_route(hm, "/api/#")) {
     serve_static(c, hm);
   } else {
     reply_error(c, 404, "not found");
@@ -548,30 +564,24 @@ static void ev_handler(struct mg_connection *c, int ev, void *ev_data) {
 int main(void) {
   char url[64];
   struct mg_mgr mgr;
+  // PORT is only used as a number; anything else falls back to the default.
+  int port = parse_int(getenv("PORT"), 1, 65535, DEFAULT_PORT);  // flawfinder: ignore
 
   mg_log_set(MG_LL_INFO);
   signal(SIGINT, on_signal);
   signal(SIGTERM, on_signal);
 
-  s_public_dir = env_or("PUBLIC_DIR", "public");
-  mg_snprintf(s_index_path, sizeof(s_index_path), "%s/index.html", s_public_dir);
-  if (!file_exists(s_index_path)) {
-    MG_INFO(("%s not found - serving API only", s_index_path));
-    s_public_dir = NULL;
-  }
-  if (!db_init(env_or("DB_PATH", "game.db"),
-               env_or("SEED_PATH", "data/seed.sql"))) {
-    return EXIT_FAILURE;
-  }
+  s_serve_static = file_exists(INDEX_PATH);
+  if (!s_serve_static) MG_INFO(("%s not found - serving API only", INDEX_PATH));
+  if (!db_init()) return EXIT_FAILURE;
 
-  mg_snprintf(url, sizeof(url), "http://0.0.0.0:%s", env_or("PORT", "8000"));
+  mg_snprintf(url, sizeof(url), "http://0.0.0.0:%d", port);
   mg_mgr_init(&mgr);
   if (mg_http_listen(&mgr, url, ev_handler, NULL) == NULL) {
     MG_ERROR(("cannot listen on %s", url));
     return EXIT_FAILURE;
   }
-  MG_INFO(("listening on %s, public dir: %s", url,
-           s_public_dir ? s_public_dir : "(none)"));
+  MG_INFO(("listening on %s, static: %s", url, s_serve_static ? PUBLIC_DIR "/" : "off"));
   while (!s_stop) mg_mgr_poll(&mgr, 1000);
 
   MG_INFO(("shutting down"));

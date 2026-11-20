@@ -11,7 +11,7 @@ Each mode has its own leaderboard, stored in SQLite.
 |----------|------|
 | Frontend | Svelte 5 + Vite, built as a static export (`frontend/`) |
 | Backend  | C, [Mongoose](https://github.com/cesanta/mongoose) 7.23 embedded web server (`backend/`) |
-| Database | SQLite (`/data/game.db` in the container) |
+| Database | SQLite (`/app/data/game.db` in the container) |
 
 ## How it is served
 
@@ -28,7 +28,14 @@ browser ──► Mongoose (C) :8000
 - Unknown non-asset paths fall back to `index.html` (SPA fallback).
 - `npm run build` also writes `.gz` copies of each file. Mongoose sends them to clients that accept gzip, so nothing is compressed per request.
 
-`PUBLIC_DIR` sets the directory to serve. The default is `./public`. If that directory has no `index.html`, the server runs API-only.
+The server uses fixed paths relative to its working directory. No file path comes from an environment variable or a request:
+
+| Path | Contents |
+|------|----------|
+| `./public/` | Svelte static export. Without an `index.html`, the server runs API-only. |
+| `./data/game.db` | SQLite database. `./data` is created if missing. |
+
+The only setting is `PORT` (1–65535, default 8000). Country data is compiled into the binary (`backend/src/countries.h`) and inserted with prepared statements on first start. The server never runs SQL text read from disk.
 
 ## Run with Docker / Podman
 
@@ -46,8 +53,7 @@ Backend (Linux/macOS/WSL, needs `gcc`, `make` and `libsqlite3-dev`):
 
 ```sh
 cd backend
-make                              # hardened build -> ./server
-PUBLIC_DIR=../frontend/dist ./server   # http://localhost:8000
+make run                          # hardened build, links ../frontend/dist as ./public, serves :8000
 ```
 
 Frontend, with hot reload. Vite proxies `/api` to the backend on port 8000:
@@ -99,11 +105,11 @@ docker run --rm -v "$PWD:/repo" aquasec/trivy:0.76.1 fs --include-dev-deps --ski
 
 ## Data
 
-Country data comes from [mledoze/countries](https://github.com/mledoze/countries) 5.1.0 (ODbL-1.0). It covers 194 independent countries. Flags come from [flagcdn.com](https://flagcdn.com). To regenerate the seed:
+Country data comes from [mledoze/countries](https://github.com/mledoze/countries) 5.1.0 (ODbL-1.0). It covers 194 independent countries. Flags come from [flagcdn.com](https://flagcdn.com). To regenerate the compiled-in data:
 
 ```sh
 curl -L -o countries.json https://raw.githubusercontent.com/mledoze/countries/5.1.0/countries.json
-node tools/make-seed.mjs countries.json > backend/data/seed.sql
+node tools/make-seed.mjs countries.json > backend/src/countries.h
 ```
 
 ## License note
