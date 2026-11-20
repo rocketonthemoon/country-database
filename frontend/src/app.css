@@ -1,0 +1,297 @@
+/* Same look as the v1 Country Database app (css/main.css):
+   white background, Poppins, thin black lines, rounded fieldsets. */
+
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: white;
+  color: black;
+  font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
+}
+
+/* ---- header (logo and name) ---- */
+
+header {
+  background-color: white;
+  width: 100%;
+  height: 80px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+nav {
+  height: 100%;
+  width: 100%;
+  text-align: left;
+  font-size: 30px;
+  font-weight: 500;
+}
+
+nav button {
+  all: unset;
+  cursor: pointer;
+}
+
+nav i,
+nav span {
+  margin: 20px 0 0 20px;
+}
+
+/* ---- main ---- */
+
+main {
+  width: 80%;
+  margin: 0 auto;
+  max-width: 1440px;
+  text-align: center;
+  padding-bottom: 80px; /* room for the fixed footer */
+}
+
+/* Typewriter heading */
+.typewriter {
+  margin: 50px auto 0 auto;
+  font-size: clamp(30px, 8vw, 60px);
+  font-weight: 300;
+  width: 80%;
+  max-width: 570px;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  border-right: 2px solid black;
+  animation: flash 3.5s infinite 2s steps(50, end), blinker 0.5s infinite step-end;
+}
+
+.typewriter.once {
+  animation: flash 1.5s 1 steps(50, end) both, blinker 0.5s infinite step-end;
+}
+
+.section {
+  margin: 50px auto;
+  width: 80%;
+  max-width: 810px;
+}
+
+/* Rounded fieldset with legend, like "Enter Country Name :" */
+.field {
+  position: relative;
+}
+
+.field fieldset {
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  border-radius: 20px;
+  padding: 0 10px 10px;
+}
+
+.field legend {
+  font-size: 20px;
+  font-weight: 400;
+  text-align: left;
+  padding: 0 2px;
+}
+
+.field input {
+  width: 90%;
+  border: 0;
+  outline: none;
+  font-family: inherit;
+  font-size: 25px;
+  margin: 10px;
+  color: gray;
+  font-weight: 300;
+  background: transparent;
+}
+
+/* Autocomplete list under a field */
+.suggestions {
+  position: absolute;
+  top: 85px;
+  width: 100%;
+  max-width: 810px;
+  background-color: white;
+  box-shadow: 0 0 20px 5px rgba(0, 0, 0, 0.1);
+  overflow: auto;
+  max-height: 150px;
+  z-index: 2;
+}
+
+.suggestions li {
+  text-align: left;
+  font-size: 25px;
+  margin: 0 20px;
+  letter-spacing: 2px;
+  list-style: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+}
+
+.suggestions li.active,
+.suggestions li:hover {
+  background-color: rgba(128, 128, 128, 0.15);
+}
+
+/* Bordered result box, like the search result <pre> */
+.box {
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  text-align: left;
+  padding: 20px;
+}
+
+/* Buttons, like the copy button */
+.btn {
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 400;
+  color: black;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 10px 20px;
+  border-radius: 10px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.1s ease-in;
+}
+
+.btn:hover:not(:disabled) {
+  background-color: rgba(128, 128, 128, 0.287);
+}
+
+.btn:disabled {
+  cursor: default;
+  color: gray;
+}
+
+.btn.dark {
+  background-color: black;
+  border-color: black;
+  color: white;
+}
+
+.btn.dark:hover:not(:disabled) {
+  background-color: #333;
+}
+
+.btn:focus-visible,
+.field input:focus-visible {
+  outline: 2px solid black;
+  outline-offset: 2px;
+}
+
+.status {
+  display: flex;
+  justify-content: space-between;
+  font-size: 20px;
+  font-weight: 300;
+  letter-spacing: 1px;
+}
+
+.muted {
+  color: gray;
+  font-weight: 300;
+}
+
+.error {
+  color: #c62828;
+  font-weight: 400;
+}
+
+.good {
+  color: #2e7d32;
+}
+
+.bad {
+  color: #c62828;
+}
+
+/* ---- footer ---- */
+
+footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  height: 40px;
+  text-align: left;
+  overflow: hidden;
+  background-color: white;
+}
+
+footer a {
+  font-size: 20px;
+  margin-left: 25px;
+  color: black;
+  font-weight: 300;
+  letter-spacing: 3px;
+  text-decoration: none;
+}
+
+/* ---- Type Writer Effect ---- */
+
+@keyframes flash {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes blinker {
+  from,
+  to {
+    border-color: transparent;
+  }
+  50% {
+    border-color: black;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typewriter,
+  .typewriter.once {
+    animation: none;
+    border-right-color: transparent;
+  }
+}
+
+/* ---- media queries for mobile ---- */
+
+@media (max-width: 600px) {
+  main,
+  .section {
+    width: 100%;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .section {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .typewriter {
+    width: 100%;
+    letter-spacing: 1px;
+    font-weight: 400;
+  }
+
+  nav {
+    font-size: 25px;
+  }
+
+  nav i,
+  nav span {
+    margin: 25px 0 0 10px;
+  }
+
+  .field input,
+  .suggestions li {
+    font-size: 20px;
+  }
+
+  footer a {
+    font-size: 16px;
+  }
+}

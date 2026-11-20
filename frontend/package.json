@@ -1,0 +1,23 @@
+{
+  "name": "guess-the-country-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/precompress.mjs",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "check": "svelte-check --threshold warning --fail-on-warnings"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "eslint": "^9.39.5",
+    "eslint-plugin-svelte": "^3.24.0",
+    "globals": "^17.14.0",
+    "svelte": "^5.28.1",
+    "svelte-check": "^4.7.8",
+    "vite": "^6.3.5"
+  }
+}
