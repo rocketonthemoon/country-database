@@ -1,5 +1,6 @@
 /* Same look as the v1 Country Database app (css/main.css):
-   white background, Poppins, thin black lines, rounded fieldsets. */
+   white background, Poppins, thin black lines, rounded fieldsets.
+   Type scale is a notch smaller than v1 so game screens fit on one view. */
 
 * {
   padding: 0;
@@ -11,7 +12,16 @@ body {
   background-color: white;
   color: black;
   font-family: 'Poppins', sans-serif;
+  font-size: 16px;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ---- header (logo and name) ---- */
@@ -19,60 +29,47 @@ body {
 header {
   background-color: white;
   width: 100%;
-  height: 80px;
+  height: 64px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 nav {
   height: 100%;
-  width: 100%;
-  text-align: left;
-  font-size: 30px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  font-size: 22px;
   font-weight: 500;
 }
 
 nav button {
   all: unset;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
 }
 
-nav i,
-nav span {
-  margin: 20px 0 0 20px;
+nav button:focus-visible {
+  outline: 2px solid black;
+  outline-offset: 4px;
 }
 
 /* ---- main ---- */
 
 main {
+  flex: 1;
   width: 80%;
   margin: 0 auto;
   max-width: 1440px;
   text-align: center;
-  padding-bottom: 80px; /* room for the fixed footer */
-}
-
-/* Typewriter heading */
-.typewriter {
-  margin: 50px auto 0 auto;
-  font-size: clamp(30px, 8vw, 60px);
-  font-weight: 300;
-  width: 80%;
-  max-width: 570px;
-  letter-spacing: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  border-right: 2px solid black;
-  animation: flash 3.5s infinite 2s steps(50, end), blinker 0.5s infinite step-end;
-}
-
-.typewriter.once {
-  animation: flash 1.5s 1 steps(50, end) both, blinker 0.5s infinite step-end;
+  padding-bottom: 40px;
 }
 
 .section {
-  margin: 50px auto;
-  width: 80%;
-  max-width: 810px;
+  margin: 36px auto;
+  width: 100%;
+  max-width: 720px;
 }
 
 /* Rounded fieldset with legend, like "Enter Country Name :" */
@@ -83,14 +80,20 @@ main {
 .field fieldset {
   border: 1px solid rgba(0, 0, 0, 0.5);
   border-radius: 20px;
-  padding: 0 10px 10px;
+  padding: 0 12px 8px;
+  transition: border-color 0.1s ease-in, box-shadow 0.1s ease-in;
+}
+
+.field fieldset:focus-within {
+  border-color: black;
+  box-shadow: 0 0 20px 5px rgba(0, 0, 0, 0.06);
 }
 
 .field legend {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 400;
   text-align: left;
-  padding: 0 2px;
+  padding: 0 4px;
 }
 
 .field input {
@@ -98,39 +101,47 @@ main {
   border: 0;
   outline: none;
   font-family: inherit;
-  font-size: 25px;
-  margin: 10px;
-  color: gray;
+  font-size: 18px;
+  margin: 6px 8px;
+  color: #444;
   font-weight: 300;
+  letter-spacing: 0.5px;
   background: transparent;
 }
 
 /* Autocomplete list under a field */
 .suggestions {
   position: absolute;
-  top: 85px;
+  top: calc(100% + 6px);
+  left: 0;
   width: 100%;
-  max-width: 810px;
   background-color: white;
   box-shadow: 0 0 20px 5px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
   overflow: auto;
-  max-height: 150px;
+  max-height: 200px;
   z-index: 2;
+  padding: 4px 0;
 }
 
 .suggestions li {
   text-align: left;
-  font-size: 25px;
-  margin: 0 20px;
-  letter-spacing: 2px;
+  font-size: 16px;
+  font-weight: 300;
+  padding: 7px 20px;
+  letter-spacing: 1px;
   list-style: none;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   cursor: pointer;
+}
+
+.suggestions li:last-child {
+  border-bottom: none;
 }
 
 .suggestions li.active,
 .suggestions li:hover {
-  background-color: rgba(128, 128, 128, 0.15);
+  background-color: rgba(128, 128, 128, 0.12);
 }
 
 /* Bordered result box, like the search result <pre> */
@@ -144,11 +155,11 @@ main {
 /* Buttons, like the copy button */
 .btn {
   font-family: inherit;
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 400;
   color: black;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 10px 20px;
+  padding: 8px 18px;
   border-radius: 10px;
   background-color: white;
   cursor: pointer;
@@ -156,12 +167,12 @@ main {
 }
 
 .btn:hover:not(:disabled) {
-  background-color: rgba(128, 128, 128, 0.287);
+  background-color: rgba(128, 128, 128, 0.2);
 }
 
 .btn:disabled {
   cursor: default;
-  color: gray;
+  color: #bdbdbd;
 }
 
 .btn.dark {
@@ -174,18 +185,9 @@ main {
   background-color: #333;
 }
 
-.btn:focus-visible,
-.field input:focus-visible {
+.btn:focus-visible {
   outline: 2px solid black;
   outline-offset: 2px;
-}
-
-.status {
-  display: flex;
-  justify-content: space-between;
-  font-size: 20px;
-  font-weight: 300;
-  letter-spacing: 1px;
 }
 
 .muted {
@@ -209,89 +211,61 @@ main {
 /* ---- footer ---- */
 
 footer {
-  position: fixed;
-  bottom: 0;
   width: 100%;
   height: 40px;
-  text-align: left;
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 0 25px;
   background-color: white;
 }
 
 footer a {
-  font-size: 20px;
-  margin-left: 25px;
+  font-size: 15px;
   color: black;
   font-weight: 300;
   letter-spacing: 3px;
   text-decoration: none;
 }
 
-/* ---- Type Writer Effect ---- */
-
-@keyframes flash {
-  from {
-    width: 0;
-  }
-  to {
-    width: 100%;
-  }
-}
-
-@keyframes blinker {
-  from,
-  to {
-    border-color: transparent;
-  }
-  50% {
-    border-color: black;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .typewriter,
-  .typewriter.once {
-    animation: none;
-    border-right-color: transparent;
-  }
+footer a:hover {
+  text-decoration: underline;
 }
 
 /* ---- media queries for mobile ---- */
 
 @media (max-width: 600px) {
-  main,
-  .section {
+  main {
     width: 100%;
-    padding-left: 16px;
-    padding-right: 16px;
+    padding: 0 16px 24px;
   }
 
   .section {
-    padding-left: 0;
-    padding-right: 0;
-  }
-
-  .typewriter {
-    width: 100%;
-    letter-spacing: 1px;
-    font-weight: 400;
+    margin: 24px auto;
   }
 
   nav {
-    font-size: 25px;
+    font-size: 19px;
+    padding: 0 16px;
   }
 
-  nav i,
-  nav span {
-    margin: 25px 0 0 10px;
+  header {
+    height: 56px;
   }
 
-  .field input,
-  .suggestions li {
-    font-size: 20px;
+  .field input {
+    font-size: 16px;
+  }
+
+  .box {
+    padding: 14px;
+  }
+
+  footer {
+    padding: 0 16px;
   }
 
   footer a {
-    font-size: 16px;
+    font-size: 13px;
+    letter-spacing: 2px;
   }
 }

@@ -50,16 +50,28 @@
   }
   .board li {
     display: grid;
-    grid-template-columns: 40px 1fr auto;
+    grid-template-columns: 32px 1fr auto;
     gap: 10px;
     text-align: left;
-    font-size: 20px;
+    font-size: 16px;
     letter-spacing: 1px;
     padding: 6px 0;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   }
   .board li:last-child {
     border-bottom: none;
+  }
+  .board li:nth-child(1) .rank {
+    color: #f9a825;
+    font-weight: 600;
+  }
+  .board li:nth-child(2) .rank {
+    color: #9e9e9e;
+    font-weight: 600;
+  }
+  .board li:nth-child(3) .rank {
+    color: #a1662f;
+    font-weight: 600;
   }
   .rank {
     color: gray;

@@ -1,6 +1,8 @@
 <script>
   import { api, errorMessage, CLUE_ROUNDS } from './api.js'
   import GameOver from './GameOver.svelte'
+  import Typewriter from './Typewriter.svelte'
+  import GameStatus from './GameStatus.svelte'
 
   /** @type {{ onexit: () => void }} */
   let { onexit } = $props()
@@ -26,7 +28,16 @@
   /** @type {HTMLInputElement | undefined} */
   let input = $state()
 
+  /** @type {HTMLButtonElement | undefined} */
+  let nextButton = $state()
+
+  // After a round ends, focus "Next" so Enter continues.
+  $effect(() => {
+    if (outcome && nextButton) nextButton.focus()
+  })
+
   const points = $derived(total - clues.length + 1)
+  const locked = $derived(Math.max(0, total - clues.length))
   const maxScore = $derived(CLUE_ROUNDS * total)
   const known = $derived(new Set(countries.map((c) => c.toLowerCase())))
   // Same matching as the v1 search: substring, case-insensitive.
@@ -164,23 +175,22 @@
   startRound()
 </script>
 
+
 {#if finished}
   <GameOver mode="clue" {score} max={maxScore} onplayagain={restart} {onexit} />
 {:else}
   <section>
-    <h1 class="typewriter once">Guess from Clues.</h1>
+    <Typewriter text="Guess from Clues." />
   </section>
 
   <section class="section game">
-    <div class="status">
-      <span>Country {round} / {CLUE_ROUNDS}</span>
-      <span>Score : {score}</span>
-    </div>
+    <GameStatus label="Country" {round} rounds={CLUE_ROUNDS} {score} done={!!outcome} {onexit} />
 
-    <ol class="box clues">
+    <ol class="box clues" aria-live="polite">
       {#each clues as clue (clue.n)}
-        <li>
-          <span class="label">{clue.label} :</span>
+        <li class="clue">
+          <span class="num">{clue.n + 1}</span>
+          <span class="label">{clue.label}</span>
           {#if clue.type === 'flag'}
             <img src={clue.value} alt="Flag clue" />
           {:else}
@@ -188,26 +198,35 @@
           {/if}
         </li>
       {/each}
-      {#if clues.length === 0}
-        <li class="muted">Loading…</li>
+      {#if !outcome && locked > 0 && clues.length > 0}
+        <li class="clue locked">
+          <span class="num"><i class="fa-solid fa-lock"></i></span>
+          <span class="label">{locked} more clue{locked === 1 ? '' : 's'}</span>
+          <span class="pips" aria-hidden="true">
+            {#each { length: total }, i (i)}
+              <span class="pip" class:on={i < clues.length}></span>
+            {/each}
+          </span>
+        </li>
       {/if}
     </ol>
 
-    {#if wrongGuesses.length}
-      <p class="bad wrong"><i class="fa-solid fa-xmark"></i> Not : {wrongGuesses.join(', ')}</p>
+    {#if wrongGuesses.length && !outcome}
+      <p class="wrong"><i class="fa-solid fa-xmark"></i> Not {wrongGuesses.join(', ')}</p>
     {/if}
 
     {#if outcome}
       <div class="feedback">
         <span class={outcome.correct ? 'good' : 'bad'}>
           {#if outcome.correct}
-            <i class="fa-solid fa-check"></i> Correct, it's {outcome.answer}! +{outcome.points}
+            <i class="fa-solid fa-check"></i> {outcome.answer}! +{outcome.points}
           {:else}
-            <i class="fa-solid fa-xmark"></i> It was {outcome.answer}.
+            It was {outcome.answer}.
           {/if}
         </span>
-        <button class="btn dark" onclick={next}>
+        <button class="btn dark" bind:this={nextButton} onclick={next}>
           {round >= CLUE_ROUNDS ? 'See results' : 'Next country'}
+          <i class="fa-solid fa-arrow-right"></i>
         </button>
       </div>
     {:else}
@@ -230,6 +249,14 @@
               aria-controls="clue-suggestions"
               disabled={busy}
             />
+            <button
+              class="submit"
+              type="submit"
+              aria-label="Submit guess"
+              disabled={busy || !guess.trim()}
+            >
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
           </form>
         </fieldset>
         {#if showSuggestions && suggestions.length}
@@ -252,78 +279,149 @@
       </article>
 
       <div class="actions">
-        <button class="btn dark" onclick={submitGuess} disabled={busy || !guess.trim()}>
-          Guess for {points} pt{points === 1 ? '' : 's'}
-        </button>
-        <button class="btn" onclick={nextClue} disabled={busy || clues.length >= total}>
-          Next clue ({clues.length}/{total})
-        </button>
-        <button class="btn" onclick={giveUp} disabled={busy}>Give up</button>
+        <span class="worth">Worth <strong>{points}</strong> pt{points === 1 ? '' : 's'}</span>
+        <div class="buttons">
+          <button class="btn" onclick={nextClue} disabled={busy || clues.length >= total}>
+            <i class="fa-regular fa-lightbulb"></i> Next clue
+          </button>
+          <button class="btn" onclick={giveUp} disabled={busy}>Give up</button>
+        </div>
       </div>
     {/if}
 
     {#if error}<p class="error">{error}</p>{/if}
-
-    <button class="btn quit" onclick={onexit}>Quit</button>
   </section>
 {/if}
 
 <style>
   .game {
     display: grid;
-    gap: 25px;
+    gap: 22px;
   }
   .clues {
     list-style: none;
     display: grid;
-    gap: 8px;
+    padding: 6px 20px;
   }
-  .clues li {
-    display: flex;
-    flex-wrap: wrap;
+  .clue {
+    display: grid;
+    grid-template-columns: 24px 120px 1fr;
     align-items: center;
-    gap: 4px 15px;
-    font-size: 20px;
-    padding-bottom: 8px;
+    gap: 12px;
+    min-height: 44px;
+    padding: 8px 0;
+    font-size: 16px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     animation: type 0.4s steps(20, end);
   }
-  .clues li:last-child {
+  .clue:last-child {
     border-bottom: none;
-    padding-bottom: 0;
+  }
+  .num {
+    font-size: 13px;
+    color: gray;
+    font-weight: 300;
   }
   .label {
-    min-width: 150px;
     font-weight: 400;
   }
   .value {
     font-weight: 300;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
   }
-  .clues img {
-    max-height: 90px;
+  .clue img {
+    max-height: 70px;
     max-width: 100%;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 20px 5px rgba(0, 0, 0, 0.1);
+  }
+  .locked {
+    color: #bdbdbd;
+    animation: none;
+  }
+  .locked .label {
+    font-weight: 300;
+  }
+  .locked .num {
+    font-size: 12px;
+    color: #bdbdbd;
+  }
+  .pips {
+    display: flex;
+    gap: 5px;
+  }
+  .pip {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.12);
+  }
+  .pip.on {
+    background: black;
   }
   .wrong {
     text-align: left;
+    font-size: 15px;
     font-weight: 300;
+    color: #c62828;
+  }
+  .field form {
+    display: flex;
+    align-items: center;
+  }
+  .field input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+  .submit {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    font-size: 15px;
+    color: white;
+    background: black;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: opacity 0.1s ease-in;
+  }
+  .submit:disabled {
+    opacity: 0.2;
+    cursor: default;
   }
   .actions {
     display: flex;
     flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
     gap: 10px;
-    justify-content: center;
+  }
+  .worth {
+    font-size: 15px;
+    font-weight: 300;
+    color: gray;
+  }
+  .worth strong {
+    font-weight: 600;
+    color: black;
+  }
+  .buttons {
+    display: flex;
+    gap: 10px;
   }
   .feedback {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 15px;
-    font-size: 20px;
+    font-size: 17px;
   }
-  .quit {
-    justify-self: start;
+  .feedback .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
   }
   @keyframes type {
     from {
@@ -331,6 +429,30 @@
     }
     to {
       clip-path: inset(0 0 0 0);
+    }
+  }
+  @media (max-width: 600px) {
+    .game {
+      gap: 16px;
+    }
+    .clues {
+      padding: 4px 14px;
+    }
+    .clue {
+      grid-template-columns: 18px 1fr;
+      gap: 2px 10px;
+      font-size: 15px;
+      min-height: 0;
+    }
+    .clue .value,
+    .clue img {
+      grid-column: 2;
+    }
+    .pips {
+      grid-column: 2;
+    }
+    .feedback {
+      font-size: 15px;
     }
   }
 </style>
