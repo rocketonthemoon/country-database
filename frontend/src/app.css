@@ -1,0 +1,271 @@
+/* Same look as the v1 Country Database app (css/main.css):
+   white background, Poppins, thin black lines, rounded fieldsets.
+   Type scale is a notch smaller than v1 so game screens fit on one view. */
+
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: white;
+  color: black;
+  font-family: 'Poppins', sans-serif;
+  font-size: 16px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- header (logo and name) ---- */
+
+header {
+  background-color: white;
+  width: 100%;
+  height: 64px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+nav {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  font-size: 22px;
+  font-weight: 500;
+}
+
+nav button {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+nav button:focus-visible {
+  outline: 2px solid black;
+  outline-offset: 4px;
+}
+
+/* ---- main ---- */
+
+main {
+  flex: 1;
+  width: 80%;
+  margin: 0 auto;
+  max-width: 1440px;
+  text-align: center;
+  padding-bottom: 40px;
+}
+
+.section {
+  margin: 36px auto;
+  width: 100%;
+  max-width: 720px;
+}
+
+/* Rounded fieldset with legend, like "Enter Country Name :" */
+.field {
+  position: relative;
+}
+
+.field fieldset {
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  border-radius: 20px;
+  padding: 0 12px 8px;
+  transition: border-color 0.1s ease-in, box-shadow 0.1s ease-in;
+}
+
+.field fieldset:focus-within {
+  border-color: black;
+  box-shadow: 0 0 20px 5px rgba(0, 0, 0, 0.06);
+}
+
+.field legend {
+  font-size: 16px;
+  font-weight: 400;
+  text-align: left;
+  padding: 0 4px;
+}
+
+.field input {
+  width: 90%;
+  border: 0;
+  outline: none;
+  font-family: inherit;
+  font-size: 18px;
+  margin: 6px 8px;
+  color: #444;
+  font-weight: 300;
+  letter-spacing: 0.5px;
+  background: transparent;
+}
+
+/* Autocomplete list under a field */
+.suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  background-color: white;
+  box-shadow: 0 0 20px 5px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  overflow: auto;
+  max-height: 200px;
+  z-index: 2;
+  padding: 4px 0;
+}
+
+.suggestions li {
+  text-align: left;
+  font-size: 16px;
+  font-weight: 300;
+  padding: 7px 20px;
+  letter-spacing: 1px;
+  list-style: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+}
+
+.suggestions li:last-child {
+  border-bottom: none;
+}
+
+.suggestions li.active,
+.suggestions li:hover {
+  background-color: rgba(128, 128, 128, 0.12);
+}
+
+/* Bordered result box, like the search result <pre> */
+.box {
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  text-align: left;
+  padding: 20px;
+}
+
+/* Buttons, like the copy button */
+.btn {
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 400;
+  color: black;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 8px 18px;
+  border-radius: 10px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.1s ease-in;
+}
+
+.btn:hover:not(:disabled) {
+  background-color: rgba(128, 128, 128, 0.2);
+}
+
+.btn:disabled {
+  cursor: default;
+  color: #bdbdbd;
+}
+
+.btn.dark {
+  background-color: black;
+  border-color: black;
+  color: white;
+}
+
+.btn.dark:hover:not(:disabled) {
+  background-color: #333;
+}
+
+.btn:focus-visible {
+  outline: 2px solid black;
+  outline-offset: 2px;
+}
+
+.muted {
+  color: gray;
+  font-weight: 300;
+}
+
+.error {
+  color: #c62828;
+  font-weight: 400;
+}
+
+.good {
+  color: #2e7d32;
+}
+
+.bad {
+  color: #c62828;
+}
+
+/* ---- footer ---- */
+
+footer {
+  width: 100%;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 0 25px;
+  background-color: white;
+}
+
+footer a {
+  font-size: 15px;
+  color: black;
+  font-weight: 300;
+  letter-spacing: 3px;
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+/* ---- media queries for mobile ---- */
+
+@media (max-width: 600px) {
+  main {
+    width: 100%;
+    padding: 0 16px 24px;
+  }
+
+  .section {
+    margin: 24px auto;
+  }
+
+  nav {
+    font-size: 19px;
+    padding: 0 16px;
+  }
+
+  header {
+    height: 56px;
+  }
+
+  .field input {
+    font-size: 16px;
+  }
+
+  .box {
+    padding: 14px;
+  }
+
+  footer {
+    padding: 0 16px;
+  }
+
+  footer a {
+    font-size: 13px;
+    letter-spacing: 2px;
+  }
+}

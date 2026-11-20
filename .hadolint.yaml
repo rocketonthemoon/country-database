@@ -1,0 +1,7 @@
+# hadolint config (used locally and in CI)
+failure-threshold: warning
+ignored:
+  # Pinning apk package versions breaks builds every time Alpine ships a
+  # security fix. Base images are pinned to a minor Alpine release instead,
+  # and Trivy scans the resulting image for vulnerable packages.
+  - DL3018
